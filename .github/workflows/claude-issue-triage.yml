@@ -1,0 +1,119 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+concurrency:
+  group: claude-triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    if: github.event.issue.state == 'open' && github.event.sender.type != 'Bot'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Issue Triage
+        id: claude-triage
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          claude_args: |
+            --allowedTools "Bash(gh label list:*),Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh search issues:*),Read,Glob,Grep"
+
+          prompt: |
+            REPO: ${{ github.repository }}
+            ISSUE NUMBER: ${{ github.event.issue.number }}
+            EVENT ACTION: ${{ github.event.action }}
+            TITLE: ${{ github.event.issue.title }}
+            AUTHOR: ${{ github.event.issue.user.login }}
+            BODY:
+            ${{ github.event.issue.body }}
+
+            You are triaging this issue for a vanilla-JS Tetris game (three files:
+            `game.js` holds all game logic, `index.html` is DOM/canvas structure,
+            `style.css` is styling — see CLAUDE.md in the repo root for the full
+            architecture: board model, PIECES/COLORS indices, rotateCW, collide,
+            tryRotate wall kicks, ghostY, lockPiece, clearLines, scoring/leveling).
+
+            Do two things: (1) apply labels, (2) post a structured diagnosis
+            comment. Do NOT modify any files, commit, open a PR, or close the
+            issue.
+
+            ## Step 1 — Labels
+
+            Run `gh label list` first and choose ONLY from that existing set.
+            You are not allowed to create new labels (no `gh label create`
+            access). Rules:
+            - Apply exactly one type label: `bug`, `enhancement`,
+              `documentation`, or `question`.
+            - Add `good first issue` when the fix looks small and localized
+              (e.g. a single constant/value change in `game.js`, a CSS rule).
+            - Add `accessibility` when the issue concerns color contrast,
+              keyboard input, or screen readers.
+            - Add `duplicate` only if you find a specific matching issue via
+              `gh search issues` — cite its number in the comment.
+            - NEVER apply `invalid` or `wontfix` yourself — those are human
+              calls; you may only suggest them in the comment text.
+            - Use at most 3 labels total.
+            - If EVENT ACTION is `edited`, first check the issue's current
+              labels with `gh issue view` and remove any stale triage labels
+              that no longer apply before adding the new ones, so labels don't
+              accumulate across edits. Apply the final label set with
+              `gh issue edit ${{ github.event.issue.number }} --add-label
+              "..." --remove-label "..."`.
+
+            ## Step 2 — Diagnosis comment (English)
+
+            Before writing anything, actually read the relevant source with
+            Read/Glob/Grep — don't speculate about code you haven't looked at.
+            Always cite concrete `file:line` references.
+
+            Write a single comment with exactly this structure:
+
+            ```
+            ## Classification
+            Type: <bug|enhancement|documentation|question> · Severity: <critical|high|medium|low>
+            Labels applied: <list>
+
+            ## Summary
+            <1-2 sentences restating the problem>
+
+            ## Affected code
+            <concrete file:line references>
+
+            ## Root cause
+            <technical hypothesis, or "Insufficient information to determine root cause" if the report lacks repro detail>
+
+            ## Proposed fix
+            <concrete change referencing real project names: COLORS, PIECES,
+            tryRotate, clearLines, LINE_SCORES, dropInterval, etc.>
+
+            ## Acceptance criteria
+            - [ ] <verifiable checklist item>
+            - [ ] <...>
+
+            ## Open questions
+            <only include this section if info is missing from the report>
+
+            <!-- claude-triage-diagnosis -->
+            *Automated triage by Claude.*
+            ```
+
+            Post it with:
+            `gh issue comment ${{ github.event.issue.number }} --edit-last --create-if-none --body-file <path to a temp file you write the body to>`
+            so that editing the issue updates the existing diagnosis instead of
+            piling up new comments. Write the body to a temp file first rather
+            than passing it inline, to avoid shell-escaping issues.
