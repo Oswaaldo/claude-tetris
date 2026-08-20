@@ -52,6 +52,11 @@ jobs:
             comment. Do NOT modify any files, commit, open a PR, or close the
             issue.
 
+            Everything you write in the comment must be valid GitHub-flavored
+            Markdown (headings, code fences, checklists, inline code spans
+            for identifiers like `game.js:123`) so it renders correctly in
+            the GitHub UI.
+
             ## Step 1 — Labels
 
             Run `gh label list` first and choose ONLY from that existing set.
