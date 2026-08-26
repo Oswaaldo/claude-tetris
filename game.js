@@ -13,7 +13,12 @@ const COLORS = [
   '#e57373', // Z - red
   '#64b5f6', // J - pale blue
   '#ffb74d', // L - orange
+  '#9e9e9e', // Nut - steel gray
+  null,      // Hole (drawn as a ring, not a filled block)
 ];
+
+const NUT = 8;
+const HOLE = 9;
 
 const PIECES = [
   null,
@@ -24,9 +29,11 @@ const PIECES = [
   [[5,5,0],[0,5,5],[0,0,0]],                  // Z
   [[6,0,0],[6,6,6],[0,0,0]],                  // J
   [[0,0,7],[7,7,7],[0,0,0]],                  // L
+  [[8,8,8],[8,9,8],[8,8,8]],                  // Nut - hole (9) counts as occupied
 ];
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
+const NUT_BONUS = 200;
 
 const THEME_KEY = 'tetris-theme';
 const GRID_COLORS = { dark: '#22222e', light: '#d5d5e2' };
@@ -70,7 +77,7 @@ function createBoard() {
 }
 
 function randomPiece() {
-  const type = Math.floor(Math.random() * 7) + 1;
+  const type = Math.floor(Math.random() * 8) + 1;
   const shape = PIECES[type].map(row => [...row]);
   return { type, shape, x: Math.floor(COLS / 2) - Math.floor(shape[0].length / 2), y: 0 };
 }
@@ -118,8 +125,10 @@ function merge() {
 
 function clearLines() {
   let cleared = 0;
+  let nutRows = 0;
   for (let r = ROWS - 1; r >= 0; r--) {
     if (board[r].every(v => v !== 0)) {
+      if (board[r].some(v => v === NUT || v === HOLE)) nutRows++;
       board.splice(r, 1);
       board.unshift(new Array(COLS).fill(0));
       cleared++;
@@ -129,6 +138,7 @@ function clearLines() {
   if (cleared) {
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
+    score += nutRows * NUT_BONUS * level;
     level = Math.floor(lines / 10) + 1;
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
     updateHUD();
@@ -182,6 +192,8 @@ function updateHUD() {
 
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
+  // El hueco de la tuerca ocupa la celda en la lógica, pero no se dibuja nada.
+  if (colorIndex === HOLE) return;
   const color = COLORS[colorIndex];
   context.globalAlpha = alpha ?? 1;
   context.fillStyle = color;
