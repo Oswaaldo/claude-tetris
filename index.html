@@ -34,6 +34,11 @@
           <span class="value" id="level">1</span>
         </div>
 
+        <div class="panel-section hidden" id="combo-section">
+          <span class="label">COMBO</span>
+          <span class="value" id="combo">0</span>
+        </div>
+
         <div class="panel-section">
           <span class="label">NEXT</span>
           <canvas id="next-canvas" width="120" height="120"></canvas>
@@ -56,7 +61,23 @@
       <div class="overlay-box">
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
+        <div id="overlay-newrecord" class="newrecord-form hidden">
+          <label for="player-name">¡Nueva puntuación en el top 5!</label>
+          <input type="text" id="player-name" maxlength="12" placeholder="Tu nombre" autocomplete="off" />
+          <button id="save-score-btn">Guardar</button>
+        </div>
+        <div id="overlay-highscores" class="highscores"></div>
         <button id="restart-btn">Reiniciar</button>
+      </div>
+    </div>
+
+    <div id="start-screen" class="overlay">
+      <div class="overlay-box">
+        <p class="overlay-heading">TETRIS</p>
+        <div id="start-highscores" class="highscores"></div>
+        <p id="start-aggregates" class="aggregates"></p>
+        <button id="play-btn">JUGAR</button>
+        <button id="reset-scores-btn" class="secondary-btn">Borrar records</button>
       </div>
     </div>
   </div>

@@ -51,7 +51,7 @@ const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 const themeToggle = document.getElementById('theme-toggle');
 
-let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, combo, maxCombo, maxLines;
 let theme = 'dark';
 
 function applyTheme(t) {
@@ -143,6 +143,7 @@ function clearLines() {
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
     updateHUD();
   }
+  return cleared;
 }
 
 function ghostY() {
@@ -170,7 +171,15 @@ function softDrop() {
 
 function lockPiece() {
   merge();
-  clearLines();
+  const cleared = clearLines();
+  if (cleared > 0) {
+    combo++;
+    maxCombo = Math.max(maxCombo, combo);
+    maxLines = Math.max(maxLines, cleared);
+  } else {
+    combo = 0;
+  }
+  updateComboUI();
   spawn();
 }
 
@@ -262,6 +271,7 @@ function endGame() {
   draw();
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
+  showGameOverScores();
   overlay.classList.remove('hidden');
 }
 
@@ -275,6 +285,8 @@ function togglePause() {
     cancelAnimationFrame(animId);
     overlayTitle.textContent = 'PAUSA';
     overlayScore.textContent = '';
+    overlayNewRecord.classList.add('hidden');
+    overlayHighscoresEl.innerHTML = '';
     overlay.classList.remove('hidden');
   }
 }
@@ -305,10 +317,14 @@ function init() {
   gameOver = false;
   dropInterval = 1000;
   dropAccum = 0;
+  combo = 0;
+  maxCombo = 0;
+  maxLines = 0;
   lastTime = performance.now();
   next = randomPiece();
   spawn();
   updateHUD();
+  updateComboUI();
   overlay.classList.add('hidden');
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
@@ -341,4 +357,186 @@ document.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', init);
 
-init();
+// ---- Records y combos ----
+
+const HISCORE_KEY = 'tetris-highscores';
+
+const comboSection = document.getElementById('combo-section');
+const comboEl = document.getElementById('combo');
+const startScreen = document.getElementById('start-screen');
+const startHighscoresEl = document.getElementById('start-highscores');
+const startAggregatesEl = document.getElementById('start-aggregates');
+const playBtn = document.getElementById('play-btn');
+const resetScoresBtn = document.getElementById('reset-scores-btn');
+const overlayHighscoresEl = document.getElementById('overlay-highscores');
+const overlayNewRecord = document.getElementById('overlay-newrecord');
+const playerNameInput = document.getElementById('player-name');
+const saveScoreBtn = document.getElementById('save-score-btn');
+
+// Actualiza la sección de combo del panel lateral; solo visible con racha >= 2.
+function updateComboUI() {
+  comboSection.classList.toggle('hidden', combo < 2);
+  comboEl.textContent = combo;
+}
+
+// Lee los records guardados en localStorage, degradando a array vacío ante cualquier problema.
+function loadScores() {
+  try {
+    const raw = localStorage.getItem(HISCORE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(e => e && typeof e === 'object'
+      && typeof e.name === 'string'
+      && typeof e.score === 'number'
+      && typeof e.lines === 'number'
+      && typeof e.level === 'number'
+      && typeof e.maxCombo === 'number'
+      && typeof e.maxLines === 'number'
+      && typeof e.date === 'string');
+  } catch (e) {
+    return [];
+  }
+}
+
+// Persiste el array de records en localStorage.
+function saveScores(scores) {
+  try {
+    localStorage.setItem(HISCORE_KEY, JSON.stringify(scores));
+  } catch (e) {
+    // localStorage no disponible (modo privado, cuota llena, etc.): se ignora.
+  }
+}
+
+// Comprueba si una puntuación entraría en el top 5 actual.
+function qualifiesForTop(scoreValue, scores) {
+  if (scores.length < 5) return true;
+  return scoreValue > scores[scores.length - 1].score;
+}
+
+// Inserta una nueva entrada en su posición correcta, trunca a 5 y persiste.
+function insertScore(entry) {
+  const scores = loadScores();
+  scores.push(entry);
+  scores.sort((a, b) => b.score - a.score);
+  scores.length = Math.min(scores.length, 5);
+  saveScores(scores);
+  return scores;
+}
+
+// Calcula el mejor combo y la mayor cantidad de líneas de entre las entradas guardadas.
+function computeAggregates(scores) {
+  let bestCombo = 0;
+  let bestLines = 0;
+  for (const s of scores) {
+    if (s.maxCombo > bestCombo) bestCombo = s.maxCombo;
+    if (s.maxLines > bestLines) bestLines = s.maxLines;
+  }
+  return { bestCombo, bestLines };
+}
+
+// Pinta una tabla de top 5 dentro de un contenedor, sin usar innerHTML con datos del jugador.
+// highlightEntry (opcional) marca la fila recién insertada con la clase .highlight.
+function renderHighscoresTable(scores, container, highlightEntry) {
+  container.innerHTML = '';
+  if (!scores.length) {
+    const empty = document.createElement('p');
+    empty.className = 'no-scores';
+    empty.textContent = 'Sin puntuaciones todavía';
+    container.appendChild(empty);
+    return;
+  }
+  const table = document.createElement('table');
+  table.className = 'highscores-table';
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  ['#', 'Nombre', 'Puntos', 'Líneas', 'Nivel', 'Combo'].forEach(text => {
+    const th = document.createElement('th');
+    th.textContent = text;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  scores.forEach((entry, i) => {
+    const tr = document.createElement('tr');
+    if (entry === highlightEntry) tr.classList.add('highlight');
+    [i + 1, entry.name, entry.score.toLocaleString(), entry.lines, entry.level, entry.maxCombo].forEach(val => {
+      const td = document.createElement('td');
+      td.textContent = val;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+// Refresca la tabla y los agregados de la pantalla de inicio a partir de localStorage.
+function refreshStartScreen() {
+  const scores = loadScores();
+  renderHighscoresTable(scores, startHighscoresEl);
+  const { bestCombo, bestLines } = computeAggregates(scores);
+  startAggregatesEl.textContent = `Mejor combo: ${bestCombo} · Máx. líneas: ${bestLines}`;
+}
+
+// Decide si mostrar el formulario de nombre (nueva entrada al top) o directamente la tabla.
+function showGameOverScores() {
+  const scores = loadScores();
+  if (qualifiesForTop(score, scores)) {
+    overlayNewRecord.classList.remove('hidden');
+    overlayHighscoresEl.innerHTML = '';
+    playerNameInput.value = '';
+    saveScoreBtn.onclick = () => {
+      const name = playerNameInput.value.trim() || 'Anónimo';
+      const entry = {
+        name,
+        score,
+        lines,
+        level,
+        maxCombo,
+        maxLines,
+        date: new Date().toISOString(),
+      };
+      const updated = insertScore(entry);
+      overlayNewRecord.classList.add('hidden');
+      renderHighscoresTable(updated, overlayHighscoresEl, entry);
+      refreshStartScreen();
+    };
+  } else {
+    overlayNewRecord.classList.add('hidden');
+    renderHighscoresTable(scores, overlayHighscoresEl);
+  }
+}
+
+playBtn.addEventListener('click', () => {
+  startScreen.classList.add('hidden');
+  init();
+});
+
+resetScoresBtn.addEventListener('click', () => {
+  if (confirm('¿Seguro que quieres borrar todos los records guardados?')) {
+    try {
+      localStorage.removeItem(HISCORE_KEY);
+    } catch (e) {
+      // localStorage no disponible: se ignora.
+    }
+    refreshStartScreen();
+  }
+});
+
+// Prepara el tablero vacío y el HUD inicial sin arrancar la partida.
+// La partida arranca al pulsar "JUGAR" (ver playBtn arriba).
+combo = 0;
+maxCombo = 0;
+maxLines = 0;
+board = createBoard();
+gameOver = true;
+score = 0;
+lines = 0;
+level = 1;
+draw();
+updateHUD();
+updateComboUI();
+refreshStartScreen();
