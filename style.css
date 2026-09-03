@@ -251,3 +251,138 @@ kbd {
 #restart-btn:hover {
   background: var(--btn-hover);
 }
+
+/* ---- Records y combos ---- */
+
+#combo-section.hidden {
+  display: none;
+}
+
+#combo-section .value {
+  color: var(--overlay-title);
+}
+
+.overlay-heading {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: var(--title-color);
+  text-shadow: 0 0 20px var(--title-glow);
+}
+
+.highscores {
+  width: 100%;
+  min-width: 280px;
+}
+
+.no-scores {
+  font-size: 13px;
+  color: var(--controls-text);
+  text-align: center;
+  padding: 8px 0;
+}
+
+.highscores-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+}
+
+.highscores-table th,
+.highscores-table td {
+  padding: 4px 6px;
+  text-align: center;
+  color: var(--fg);
+}
+
+.highscores-table th {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--panel-label);
+  border-bottom: 1px solid var(--board-border);
+}
+
+.highscores-table td:nth-child(2) {
+  text-align: left;
+}
+
+.highscores-table tr.highlight {
+  background: rgba(122, 162, 247, 0.18);
+  color: var(--panel-value);
+  font-weight: 700;
+}
+
+.newrecord-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--overlay-score);
+}
+
+.newrecord-form.hidden {
+  display: none;
+}
+
+#player-name {
+  background: var(--kbd-bg);
+  border: 1px solid var(--kbd-border);
+  color: var(--fg);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  text-align: center;
+  width: 160px;
+}
+
+#player-name:focus {
+  outline: 2px solid var(--panel-value);
+  outline-offset: 1px;
+}
+
+#save-score-btn {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.15s;
+}
+
+#save-score-btn:hover {
+  background: var(--btn-hover);
+}
+
+.aggregates {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  color: var(--overlay-score);
+  text-align: center;
+}
+
+.secondary-btn {
+  background: transparent;
+  color: var(--controls-text);
+  border: 1px solid var(--kbd-border);
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.secondary-btn:hover {
+  background: var(--kbd-bg);
+  color: var(--fg);
+}
+
+#start-screen .overlay-box {
+  max-width: 320px;
+}
