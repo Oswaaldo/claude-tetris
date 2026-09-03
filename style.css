@@ -79,7 +79,7 @@ body.light {
 #board {
   display: block;
   border: 1px solid var(--board-border);
-  background: var(--board-bg);
+  background: var(--board-bg-skin, var(--board-bg));
   border-radius: 4px;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
   transition: background 0.2s, border-color 0.2s;
@@ -118,7 +118,7 @@ body.light {
 #next-canvas {
   display: block;
   border: 1px solid var(--board-border);
-  background: var(--board-bg);
+  background: var(--board-bg-skin, var(--board-bg));
   border-radius: 4px;
   transition: background 0.2s, border-color 0.2s;
 }
@@ -250,4 +250,23 @@ kbd {
 
 #restart-btn:hover {
   background: var(--btn-hover);
+}
+
+/* ---- Skins visuales ---- */
+
+.skin-section select {
+  background: var(--kbd-bg);
+  color: var(--panel-value);
+  border: 1px solid var(--kbd-border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.skin-section select:focus-visible {
+  outline: 2px solid var(--panel-value);
+  outline-offset: 2px;
 }
